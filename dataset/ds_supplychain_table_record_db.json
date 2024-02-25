@@ -1,0 +1,91 @@
+{
+	"name": "ds_supplychain_table_record_db",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_asql_supplychain_table_records_db",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Source_System_Name",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Business_Area",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Source_Object_Type",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Source_Object_Schema",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Source_Object_Name",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Source_File_Location",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Target_Location",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Target_Object_Name",
+				"type": "nvarchar"
+			},
+			{
+				"name": "File_Format",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Partition_Column",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Load_Type",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Watermark_Column",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Creation_Time",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "Indicator",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "Status",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Last_Successful_date",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "watermark_value",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "control"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

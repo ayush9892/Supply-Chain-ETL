@@ -1,0 +1,9 @@
+{
+	"name": "adf-supplychain-proj",
+	"location": "centralindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "a61cb1fa-dd94-4e9b-9266-d4eecf792ab7",
+		"tenantId": "84c31ca0-ac3b-4eae-ad11-519d80233e6f"
+	}
+}

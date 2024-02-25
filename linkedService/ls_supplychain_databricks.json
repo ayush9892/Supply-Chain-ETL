@@ -1,0 +1,14 @@
+{
+	"name": "ls_supplychain_databricks",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-4269879761890976.16.azuredatabricks.net",
+			"authentication": "MSI",
+			"workspaceResourceId": "/subscriptions/9f8c0981-0ad5-4ee9-b773-d73f9e790e6c/resourceGroups/supplychain/providers/Microsoft.Databricks/workspaces/supplychain_databricks",
+			"existingClusterId": "0219-153826-48d7ui3z"
+		}
+	}
+}

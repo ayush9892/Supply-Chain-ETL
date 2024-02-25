@@ -1,0 +1,11 @@
+{
+	"name": "ls_supplychainproj_kv",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://supplychain-proj-kv.vault.azure.net/"
+		}
+	}
+}

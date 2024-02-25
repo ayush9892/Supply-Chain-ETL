@@ -1,0 +1,20 @@
+{
+	"name": "ls_ss_supplychain_db",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": "Integrated Security=False;Data Source=supplychain-ss.database.windows.net;Initial Catalog=supplychain-db;User ID=prac_user",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_supplychainproj_kv",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "supplychain-ss-user-pass",
+				"secretVersion": "b5c2131f26854fb68c0cc35421c34e3e"
+			}
+		}
+	}
+}

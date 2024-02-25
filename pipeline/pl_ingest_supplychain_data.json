@@ -1,0 +1,466 @@
+{
+	"name": "pl_ingest_supplychain_data",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Control Table",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT * FROM [dbo].[control] WHERE Indicator = 1;",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_supplychain_table_record_db",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Get All Tables",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Control Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Control Table').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Check Full load or Incremental load",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(toLower(item().Load_Type), 'incremental')",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "Copy Full Load",
+										"type": "Copy",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "SqlServerSource",
+												"sqlReaderQuery": {
+													"value": "@concat('SELECT * FROM ', item().Source_Object_Schema, '.', item().Source_Object_Name)",
+													"type": "Expression"
+												},
+												"queryTimeout": "02:00:00",
+												"partitionOption": "None"
+											},
+											"sink": {
+												"type": "ParquetSink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												},
+												"formatSettings": {
+													"type": "ParquetWriteSettings"
+												}
+											},
+											"enableStaging": false,
+											"translator": {
+												"type": "TabularTranslator",
+												"typeConversion": true,
+												"typeConversionSettings": {
+													"allowDataTruncation": true,
+													"treatBooleanAsNumber": false
+												}
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "ds_supplychain_db",
+												"type": "DatasetReference",
+												"parameters": {
+													"schemaName": {
+														"value": "@item().Source_Object_Schema",
+														"type": "Expression"
+													},
+													"tableName": {
+														"value": "@item().Source_Object_Name",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "ds_raw_full_load_parquet",
+												"type": "DatasetReference",
+												"parameters": {
+													"containerName": {
+														"value": "@item().Target_Location",
+														"type": "Expression"
+													},
+													"fileName": {
+														"value": "@concat(item().Source_Object_Name, '.parquet')",
+														"type": "Expression"
+													},
+													"folderName": {
+														"value": "@item().Source_Object_Name\n",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"name": "Update Indicator in control table",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "Copy Full Load",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[dbo].[sp_UpdateIndicator]",
+											"storedProcedureParameters": {
+												"Source_Object_Name": {
+													"value": {
+														"value": "@item().Source_Object_Name",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_asql_supplychain_table_records_db",
+											"type": "LinkedServiceReference"
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "Copy Incremental Load",
+										"type": "Copy",
+										"dependsOn": [
+											{
+												"activity": "Lookup Max watermark value",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "SqlServerSource",
+												"sqlReaderQuery": {
+													"value": "@concat('SELECT * FROM ', item().Source_Object_Schema, '.', item().Source_Object_Name, ' WHERE ', item().Watermark_Column, ' > ', item().watermark_value)",
+													"type": "Expression"
+												},
+												"queryTimeout": "02:00:00",
+												"partitionOption": "None"
+											},
+											"sink": {
+												"type": "ParquetSink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												},
+												"formatSettings": {
+													"type": "ParquetWriteSettings"
+												}
+											},
+											"enableStaging": false,
+											"translator": {
+												"type": "TabularTranslator",
+												"typeConversion": true,
+												"typeConversionSettings": {
+													"allowDataTruncation": true,
+													"treatBooleanAsNumber": false
+												}
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "ds_supplychain_db",
+												"type": "DatasetReference",
+												"parameters": {
+													"schemaName": {
+														"value": "@item().Source_Object_Schema",
+														"type": "Expression"
+													},
+													"tableName": {
+														"value": "@item().Source_Object_Name",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "ds_raw_incre_load_parquet",
+												"type": "DatasetReference",
+												"parameters": {
+													"containerName": {
+														"value": "@item().Target_Location",
+														"type": "Expression"
+													},
+													"folderName": {
+														"value": "@concat(item().Source_Object_Name, '/', formatDateTime(item().Creation_Time, 'yyyy-MM-dd'))",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"name": "Lookup Max watermark value",
+										"type": "Lookup",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "SqlServerSource",
+												"sqlReaderQuery": {
+													"value": "@if(equals(toLower(item().Load_Type), 'incremental'), concat('SELECT MAX(', item().Watermark_Column, ') AS Watermark_value FROM ', item().Source_Object_Schema, '.', item().Source_Object_Name), 'SELECT NULL AS Watermark_value')",
+													"type": "Expression"
+												},
+												"queryTimeout": "02:00:00",
+												"partitionOption": "None"
+											},
+											"dataset": {
+												"referenceName": "ds_supplychain_db",
+												"type": "DatasetReference",
+												"parameters": {
+													"schemaName": {
+														"value": "@item().Source_Object_Schema",
+														"type": "Expression"
+													},
+													"tableName": {
+														"value": "@item().Source_Object_Name",
+														"type": "Expression"
+													}
+												}
+											},
+											"firstRowOnly": false
+										}
+									},
+									{
+										"name": "Update Watermark",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "Copy Incremental Load",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[dbo].[sp_UpdateWatermark]",
+											"storedProcedureParameters": {
+												"Source_Object_Name": {
+													"value": {
+														"value": "@item().Source_Object_Name",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"Watermark_Column": {
+													"value": {
+														"value": "@item().Watermark_Column",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"Watermark_Value": {
+													"value": {
+														"value": "@activity('Lookup Max watermark value').output.value[0].Watermark_value",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_asql_supplychain_table_records_db",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Bronze Layer Trans",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "Check Full load or Incremental load",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/supplychain/bronze_layer_trans",
+								"baseParameters": {
+									"Load_Type": {
+										"value": "@item().Load_Type",
+										"type": "Expression"
+									},
+									"Source_Object_Name": {
+										"value": "@item().Source_Object_Name",
+										"type": "Expression"
+									},
+									"Incre_Folder_Name": {
+										"value": "@formatDateTime(item().Creation_Time, 'yyyy-MM-dd')",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_supplychain_databricks",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Silver Layer Trans",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "Bronze Layer Trans",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/supplychain/silver_layer_trans",
+								"baseParameters": {
+									"Load_Type": {
+										"value": "@item().Load_Type",
+										"type": "Expression"
+									},
+									"Source_Object_Name": {
+										"value": "@item().Source_Object_Name",
+										"type": "Expression"
+									},
+									"Incre_Folder_Name": {
+										"value": "@formatDateTime(item().Creation_Time, 'yyyy-MM-dd')",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_supplychain_databricks",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Gold Layer Trans",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "Get All Tables",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/supplychain/gold_layer_trans"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_supplychain_databricks",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2024-02-25T11:15:06Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

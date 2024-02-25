@@ -1,0 +1,11 @@
+{
+	"name": "ls_adls_supplychainprojadls",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://supplychainprojadls.dfs.core.windows.net/"
+		}
+	}
+}
