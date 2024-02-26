@@ -270,7 +270,7 @@
 											"source": {
 												"type": "SqlServerSource",
 												"sqlReaderQuery": {
-													"value": "@if(equals(toLower(item().Load_Type), 'incremental'), concat('SELECT MAX(', item().Watermark_Column, ') AS Watermark_value FROM ', item().Source_Object_Schema, '.', item().Source_Object_Name), 'SELECT NULL AS Watermark_value')",
+													"value": "@concat('SELECT MAX(', item().Watermark_Column, ') AS Watermark_value FROM ', item().Source_Object_Schema, '.', item().Source_Object_Name)",
 													"type": "Expression"
 												},
 												"queryTimeout": "02:00:00",
