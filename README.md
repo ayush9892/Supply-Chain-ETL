@@ -57,24 +57,24 @@ There is one control table in sql server, that basically contains all the inform
 
 ## Data Transformation
 
-#### 1. Bronze Layer Transformation
+#### 1. Bronze Layer Transformation: (Raw to Refined)
 
 - Check Null Values.
 - Validate data type and Handling null values.
 - Check Duplicates data.
 
-#### 2. Silver Layer Transformation
+#### 2. Silver Layer Transformation: (Business Rule Application)
 
-- Adding negotiation score and defect quality column based on business type in supplier.
-- Adding priority column based on modes in transportation.
-- Adding price category column in product.
-- Adding Total cost column in purchaseorder.
+- Categorizing supplier negotiation score and defect quality.
+- Prioritizing transportation modes.
+- Categorizing product prices.
+- Calculating total costs for purchase orders.
 
 #### 3. Gold Layer Transformation
 
-- Rank suppliers based on total no of services they provide.
-- Recommend supplier based on their supplying data.
+- Ranking of suppliers based on the total number of services provided.
+- Recommending supplier based on their supplying data.
 
-## Pipeline Execution Results
+## Pipeline Execution Result
 - Here it shows, it only process the new incremented data.
 ![image](https://github.com/ayush9892/Supply-Chain-ETL/assets/85745368/eef300ef-195e-4902-9e8a-c9f10e74965b)
